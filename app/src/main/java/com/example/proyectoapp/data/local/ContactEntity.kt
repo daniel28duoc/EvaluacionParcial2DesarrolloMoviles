@@ -9,6 +9,9 @@ data class ContactEntity(
     val id: Int = 0,
     val name: String,
     val email: String,
+    val phone: String,
     val company: String,
+    val preferredDate: String,
+    val isInPersonMeeting: Boolean,
     val message: String
 )

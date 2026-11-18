@@ -16,7 +16,14 @@ data class ContactUiState(
     val nameError: String? = null,
     val email: String = "",
     val emailError: String? = null,
+    val phone: String = "",
+    val phoneError: String? = null,
     val company: String = "",
+    val companyError: String? = null,
+    val preferredDate: String = "",
+    val dateError: String? = null,
+    val isInPersonMeeting: Boolean = false,
+    val termsAccepted: Boolean = false,
     val message: String = "",
     val isFormValid: Boolean = false,
     val isSavedSuccess: Boolean = false
@@ -31,7 +38,7 @@ class ContactViewModel(
     val uiState: StateFlow<ContactUiState> = _uiState.asStateFlow()
 
     fun onNameChanged(name: String) {
-        val error = if (name.isBlank()) "El nombre no puede estar vacío" else null
+        val error = if (name.isBlank()) "El nombre es obligatorio" else null
         _uiState.update { it.copy(name = name, nameError = error) }
         validateForm()
     }
@@ -42,8 +49,37 @@ class ContactViewModel(
         validateForm()
     }
 
+    fun onPhoneChanged(phone: String) {
+        // Solo permite dígitos y exige al menos 8 números (Tipo Int/Numérico)
+        val filtered = phone.filter { it.isDigit() }
+        val error = when {
+            filtered.isBlank() -> "El teléfono es obligatorio"
+            filtered.length < 8 -> "Debe tener al menos 8 dígitos"
+            else -> null
+        }
+        _uiState.update { it.copy(phone = filtered, phoneError = error) }
+        validateForm()
+    }
+
     fun onCompanyChanged(company: String) {
-        _uiState.update { it.copy(company = company) }
+        val error = if (company.isBlank()) "La empresa es obligatoria" else null
+        _uiState.update { it.copy(company = company, companyError = error) }
+        validateForm()
+    }
+
+    fun onDateChanged(date: String) {
+        val error = if (date.isBlank()) "Selecciona una fecha estimada" else null
+        _uiState.update { it.copy(preferredDate = date, dateError = error) }
+        validateForm()
+    }
+
+    fun onInPersonMeetingChanged(isChecked: Boolean) {
+        _uiState.update { it.copy(isInPersonMeeting = isChecked) }
+    }
+
+    fun onTermsChanged(accepted: Boolean) {
+        _uiState.update { it.copy(termsAccepted = accepted) }
+        validateForm()
     }
 
     fun onMessageChanged(message: String) {
@@ -53,7 +89,11 @@ class ContactViewModel(
     private fun validateForm() {
         val s = _uiState.value
         val isValid = s.name.isNotBlank() && s.nameError == null &&
-                s.email.isNotBlank() && s.emailError == null
+                s.email.isNotBlank() && s.emailError == null &&
+                s.phone.isNotBlank() && s.phoneError == null &&
+                s.company.isNotBlank() && s.companyError == null &&
+                s.preferredDate.isNotBlank() && s.dateError == null &&
+                s.termsAccepted
         _uiState.update { it.copy(isFormValid = isValid) }
     }
 
@@ -65,7 +105,10 @@ class ContactViewModel(
                     ContactEntity(
                         name = s.name,
                         email = s.email,
+                        phone = s.phone,
                         company = s.company,
+                        preferredDate = s.preferredDate,
+                        isInPersonMeeting = s.isInPersonMeeting,
                         message = s.message
                     )
                 )

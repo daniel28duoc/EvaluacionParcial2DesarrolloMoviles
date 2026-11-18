@@ -1,21 +1,40 @@
 package com.example.proyectoapp.ui.screens.contact
 
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.ui.platform.LocalContext
+import com.example.proyectoapp.util.makePhoneCall
+
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import java.text.SimpleDateFormat
+import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ContactScreen(viewModel: ContactViewModel) {
+fun ContactScreen(
+    viewModel: ContactViewModel,
+    onNavigateToProjectForm: () -> Unit
+) {
     val state by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState()
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -23,50 +42,126 @@ fun ContactScreen(viewModel: ContactViewModel) {
         selectedImageUri = uri
     }
 
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                        viewModel.onDateChanged(formatter.format(Date(millis)))
+                    }
+                    showDatePicker = false
+                }) { Text("Aceptar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
         Text(
-            text = "Vinculación CORPALIV / Alba Lab",
-            style = MaterialTheme.typography.headlineMedium
+            text = "1. Vinculación CORPALIV / Alba Lab",
+            style = MaterialTheme.typography.headlineSmall
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // Campo String: Nombre
         OutlinedTextField(
             value = state.name,
             onValueChange = { viewModel.onNameChanged(it) },
             label = { Text("Nombre o Representante") },
             isError = state.nameError != null,
             trailingIcon = {
-                if (state.nameError != null) {
-                    Icon(Icons.Default.Warning, contentDescription = "Error", tint = MaterialTheme.colorScheme.error)
-                }
+                if (state.nameError != null) Icon(Icons.Default.Warning, "Error", tint = MaterialTheme.colorScheme.error)
             },
             supportingText = { state.nameError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
             modifier = Modifier.fillMaxWidth()
         )
 
+        // Campo Email
         OutlinedTextField(
             value = state.email,
             onValueChange = { viewModel.onEmailChanged(it) },
             label = { Text("Correo Electrónico") },
             isError = state.emailError != null,
+            trailingIcon = {
+                if (state.emailError != null) Icon(Icons.Default.Warning, "Error", tint = MaterialTheme.colorScheme.error)
+            },
             supportingText = { state.emailError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
             modifier = Modifier.fillMaxWidth()
         )
 
+        // Campo Numérico (Int): Teléfono
+        OutlinedTextField(
+            value = state.phone,
+            onValueChange = { viewModel.onPhoneChanged(it) },
+            label = { Text("Teléfono de Contacto (Ej: 912345678)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            isError = state.phoneError != null,
+            trailingIcon = {
+                if (state.phoneError != null) Icon(Icons.Default.Warning, "Error", tint = MaterialTheme.colorScheme.error)
+            },
+            supportingText = { state.phoneError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Campo String: Empresa
         OutlinedTextField(
             value = state.company,
             onValueChange = { viewModel.onCompanyChanged(it) },
             label = { Text("Empresa o Institución") },
+            isError = state.companyError != null,
+            trailingIcon = {
+                if (state.companyError != null) Icon(Icons.Default.Warning, "Error", tint = MaterialTheme.colorScheme.error)
+            },
+            supportingText = { state.companyError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        // Campo Date: Fecha preferida de reunión
+        OutlinedTextField(
+            value = state.preferredDate,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Fecha Preferida de Reunión") },
+            trailingIcon = {
+                IconButton(onClick = { showDatePicker = true }) {
+                    Icon(Icons.Default.DateRange, contentDescription = "Seleccionar Fecha")
+                }
+            },
+            isError = state.dateError != null,
+            supportingText = { state.dateError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
+            modifier = Modifier.fillMaxWidth()
+        )
 
+        // Control Switch
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Text(
+                text = "Requiere reunión presencial en Alba Lab",
+                modifier = Modifier.weight(1f)
+            )
+            Switch(
+                checked = state.isInPersonMeeting,
+                onCheckedChange = { viewModel.onInPersonMeetingChanged(it) }
+            )
+        }
+
+        // Recurso Nativo 1: Galería
         OutlinedButton(
             onClick = { galleryLauncher.launch("image/*") },
             modifier = Modifier.fillMaxWidth()
@@ -74,7 +169,24 @@ fun ContactScreen(viewModel: ContactViewModel) {
             Text(if (selectedImageUri == null) "Adjuntar Logo Empresa (Nativo)" else "Imagen Adjuntada ✔")
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        // Control Checkbox obligatorio
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+        ) {
+            Checkbox(
+                checked = state.termsAccepted,
+                onCheckedChange = { viewModel.onTermsChanged(it) }
+            )
+            Text(
+                text = "Acepto los términos y políticas de vinculación",
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         Button(
             onClick = { viewModel.submitForm() },
@@ -89,14 +201,41 @@ fun ContactScreen(viewModel: ContactViewModel) {
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp)
+                    .padding(top = 12.dp)
             ) {
                 Text(
-                    text = "¡Solicitud guardada en base de datos local!",
+                    text = "¡Solicitud guardada localmente con éxito!",
                     modifier = Modifier.padding(16.dp),
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Botón para navegar al Formulario 2
+        FilledTonalButton(
+            onClick = onNavigateToProjectForm,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Ir a Formulario 2: Registrar Proyecto →")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Recurso Nativo 2: Marcador Telefónico (Intent.ACTION_DIAL)
+        OutlinedButton(
+            onClick = { makePhoneCall(context, "+56221234567") },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                imageVector = Icons.Default.Call,
+                contentDescription = "Llamar a CORPALIV",
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Llamar a Central Alba Lab (Nativo)")
+        }
+
     }
 }
