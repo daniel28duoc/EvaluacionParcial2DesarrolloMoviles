@@ -3,8 +3,12 @@ package com.example.proyectoapp.ui.screens.contact
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectoapp.data.local.ContactEntity
+import com.example.proyectoapp.data.remote.ApiService
+import com.example.proyectoapp.data.remote.RetrofitClient
+import com.example.proyectoapp.data.remote.SolicitudColaboracionDto
 import com.example.proyectoapp.data.repository.ContactRepository
 import com.example.proyectoapp.domain.usecase.ValidateEmailUseCase
+import com.example.proyectoapp.repository.ColaboracionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,12 +30,17 @@ data class ContactUiState(
     val termsAccepted: Boolean = false,
     val message: String = "",
     val isFormValid: Boolean = false,
-    val isSavedSuccess: Boolean = false
+    val isLoading: Boolean = false,
+    val isSavedSuccess: Boolean = false,
+    val networkError: String? = null
 )
 
 class ContactViewModel(
     private val repository: ContactRepository,
-    private val validateEmail: ValidateEmailUseCase = ValidateEmailUseCase()
+    private val validateEmail: ValidateEmailUseCase = ValidateEmailUseCase(),
+    private val remoteRepository: ColaboracionRepository = ColaboracionRepository(
+        RetrofitClient.instance // <-- Usa la instancia con el interceptor JWT
+    )
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ContactUiState())
@@ -50,7 +59,6 @@ class ContactViewModel(
     }
 
     fun onPhoneChanged(phone: String) {
-        // Solo permite dígitos y exige al menos 8 números (Tipo Int/Numérico)
         val filtered = phone.filter { it.isDigit() }
         val error = when {
             filtered.isBlank() -> "El teléfono es obligatorio"
@@ -100,7 +108,10 @@ class ContactViewModel(
     fun submitForm() {
         if (_uiState.value.isFormValid) {
             viewModelScope.launch {
+                _uiState.update { it.copy(isLoading = true, networkError = null) }
                 val s = _uiState.value
+
+                // 1. Guardar respaldo local en SQLite / Room (cumple arquitectura offline-first)
                 repository.saveContact(
                     ContactEntity(
                         name = s.name,
@@ -112,7 +123,39 @@ class ContactViewModel(
                         message = s.message
                     )
                 )
-                _uiState.update { it.copy(isSavedSuccess = true) }
+
+                // 2. Preparar DTO y enviar solicitud al microservicio en Spring Boot vía Retrofit
+                val solicitudDto = SolicitudColaboracionDto(
+                    nombre = s.name,
+                    correo = s.email,
+                    telefono = s.phone,
+                    tipoSolicitud = if (s.isInPersonMeeting) "ALIANZA_PRESENCIAL" else "VINCULACION_ONLINE",
+                    mensaje = "Empresa: ${s.company} | Fecha: ${s.preferredDate} | ${s.message}",
+                    aceptaPrivacidad = s.termsAccepted
+                )
+
+                val result = remoteRepository.enviarSolicitud(solicitudDto)
+
+                result.fold(
+                    onSuccess = {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                isSavedSuccess = true
+                            )
+                        }
+                    },
+                    onFailure = { error ->
+                        // Se guardó localmente, pero avisamos si el backend no respondió
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                isSavedSuccess = true,
+                                networkError = "Guardado localmente (Pendiente de sincronizar: ${error.message})"
+                            )
+                        }
+                    }
+                )
             }
         }
     }

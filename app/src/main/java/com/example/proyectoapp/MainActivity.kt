@@ -12,6 +12,7 @@ import com.example.proyectoapp.data.local.AppDatabase
 import com.example.proyectoapp.data.repository.ContactRepository
 import com.example.proyectoapp.ui.navigation.AppNavigation
 import com.example.proyectoapp.ui.screens.contact.ContactViewModel
+import com.example.proyectoapp.ui.screens.login.LoginViewModel
 import com.example.proyectoapp.ui.theme.ProyectoappTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,10 +20,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-
         val db = AppDatabase.getDatabase(applicationContext)
         val repository = ContactRepository(db.contactDao())
         val contactViewModel = ContactViewModel(repository)
+        val loginViewModel = LoginViewModel()
 
         setContent {
             ProyectoappTheme {
@@ -30,7 +31,12 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AppNavigation(contactViewModel = contactViewModel)
+                    // Si tu AppNavigation recibe los ViewModels o maneja rutas,
+                    // puedes pasarlos aquí según tu estructura de navegación.
+                    AppNavigation(
+                        contactViewModel = contactViewModel
+                        // loginViewModel = loginViewModel // Descomenta si AppNavigation lo requiere
+                    )
                 }
             }
         }
