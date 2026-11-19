@@ -35,6 +35,7 @@ fun ContactScreen(
     viewModel: ContactViewModel,
     onNavigateToProjectForm: () -> Unit,
     onNavigateToServiceForm: () -> Unit,
+    onNavigateToNovedadesExternas: () -> Unit = {},
     onNavigateBack: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -251,6 +252,16 @@ fun ContactScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Ir a Formulario de Servicios y Pedidos →")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Botón para navegar a Novedades Externas (API Externa)
+            OutlinedButton(
+                onClick = onNavigateToNovedadesExternas,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Ver Novedades y Difusión (API Externa) →")
             }
 
             Spacer(modifier = Modifier.height(8.dp))

@@ -1,5 +1,6 @@
 package com.example.proyectoapp.data.remote
 
+import com.example.proyectoapp.data.remote.dto.ExternalPostDto
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -46,4 +47,8 @@ interface ApiService {
     // Enviar formulario de solicitud de colaboración / contacto al backend
     @POST("api/solicitudes")
     suspend fun enviarSolicitud(@Body solicitud: SolicitudColaboracionDto): Response<Void>
+
+    // Consumo de API externa (URL completa para no alterar la baseUrl del API Gateway)
+    @GET("https://jsonplaceholder.typicode.com/posts?_limit=5")
+    suspend fun getNovedadesExternas(): Response<List<ExternalPostDto>>
 }

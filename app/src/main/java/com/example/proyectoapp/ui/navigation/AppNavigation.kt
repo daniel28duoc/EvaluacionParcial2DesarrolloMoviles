@@ -1,12 +1,14 @@
 package com.example.proyectoapp.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.proyectoapp.ui.screens.contact.ContactScreen
 import com.example.proyectoapp.ui.screens.contact.ContactViewModel
 import com.example.proyectoapp.ui.screens.home.HomeScreen
+import com.example.proyectoapp.ui.screens.novedades.NovedadesExternasScreen
 import com.example.proyectoapp.ui.screens.project.ProjectFormScreen
 import com.example.proyectoapp.ui.screens.service.ServiceFormScreen
 import com.example.proyectoapp.ui.screens.service.ServiceFormViewModel
@@ -37,6 +39,12 @@ fun AppNavigation(contactViewModel: ContactViewModel) {
                 },
                 onNavigateToServiceForm = {
                     navController.navigate("service_form")
+                },
+                onNavigateToNovedadesExternas = {
+                    navController.navigate("novedades_externas")
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -49,26 +57,18 @@ fun AppNavigation(contactViewModel: ContactViewModel) {
         }
         composable("service_form") {
             ServiceFormScreen(
-                viewModel = androidx.lifecycle.viewmodel.compose.viewModel<ServiceFormViewModel>(),
+                viewModel = viewModel<ServiceFormViewModel>(),
                 onNavigateBack = {
                     navController.popBackStack()
                 }
             )
         }
-
-            composable("contact") {
-                ContactScreen(
-                    viewModel = contactViewModel,
-                    onNavigateToProjectForm = {
-                        navController.navigate("project_form")
-                    },
-                    onNavigateToServiceForm = {
-                        navController.navigate("service_form")
-                    },
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
-                )
-            }
+        composable("novedades_externas") {
+            NovedadesExternasScreen(
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
         }
     }
+}
